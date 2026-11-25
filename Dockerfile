@@ -35,6 +35,14 @@ RUN touch src/lib.rs src/main.rs migration/src/lib.rs migration/src/main.rs \
 ARG GIT_SHA=unknown
 RUN { echo "commit ${GIT_SHA}"; date -u +"built %Y-%m-%dT%H:%M:%SZ"; } > /app/BUILD_INFO
 
+# Admin panel (React + Vite)
+FROM node:24-slim AS frontend
+WORKDIR /admin
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY admin/ ./
+RUN npm run build
+
 FROM debian:bookworm-slim AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
@@ -46,6 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY --from=builder --chown=appuser:appuser /app/target/release/aurexai-backend /app/aurexai-backend
 COPY --from=builder --chown=appuser:appuser /app/BUILD_INFO /app/BUILD_INFO
+COPY --from=frontend --chown=appuser:appuser /admin/dist /app/admin/dist
 
 USER appuser
 ENV APP_HOST=0.0.0.0 \
