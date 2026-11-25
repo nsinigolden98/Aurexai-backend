@@ -115,7 +115,7 @@ pub async fn redoc() -> axum::response::Html<&'static str> {
   </head>
   <body>
     <redoc spec-url="/api-docs/openapi.json"></redoc>
-    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script src="https://unpkg.com/redoc@2/bundles/redoc.standalone.js"></script>
   </body>
 </html>"#,
     )
