@@ -1,0 +1,122 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  IMAGE: ghcr.io/${{ github.repository_owner }}/aurexai-backend
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: aurexai_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d aurexai_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/aurexai_test
+        run: cargo test --workspace
+
+  build-push:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate deploy key
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VPS_SSH_KEY" ]; then
+            echo "::error::VPS_SSH_KEY is empty"
+            exit 1
+          fi
+          if ! printf '%s\n' "$VPS_SSH_KEY" | grep -q '^-----BEGIN OPENSSH PRIVATE KEY-----$'; then
+            echo "::error::VPS_SSH_KEY must begin with '-----BEGIN OPENSSH PRIVATE KEY-----'"
+            exit 1
+          fi
+          if ! printf '%s\n' "$VPS_SSH_KEY" | grep -q '^-----END OPENSSH PRIVATE KEY-----$'; then
+            echo "::error::VPS_SSH_KEY must end with '-----END OPENSSH PRIVATE KEY-----'"
+            exit 1
+          fi
+
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "$HOME/Aurexai-backend"
+
+            curl -fsSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/docker-compose.yml?ref=main" \
+              | python3 -c "import sys,json,base64;sys.stdout.write(base64.b64decode(json.load(sys.stdin)['content']).decode())" \
+              > docker-compose.yml.new
+            mv docker-compose.yml.new docker-compose.yml
+
+            printf '%s' "${{ secrets.GITHUB_TOKEN }}" | \
+              docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            ./scripts/deploy.sh

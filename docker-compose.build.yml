@@ -1,0 +1,12 @@
+# Local/VPS build override.
+#
+# The default compose file pulls the backend image from GHCR. To build from
+# source instead:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+
+services:
+  app:
+    build: .
+    image: aurexai-backend:local
+    pull_policy: never
