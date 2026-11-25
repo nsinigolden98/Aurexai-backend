@@ -115,7 +115,26 @@ pub async fn redoc() -> axum::response::Html<&'static str> {
   </head>
   <body>
     <redoc spec-url="/api-docs/openapi.json"></redoc>
-    <script src="https://unpkg.com/redoc@2/bundles/redoc.standalone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/redoc@2.4.0/bundles/redoc.standalone.js"></script>
+  </body>
+</html>"#,
+    )
+}
+
+pub async fn scalar() -> axum::response::Html<&'static str> {
+    axum::response::Html(
+        r#"<!doctype html>
+<html>
+  <head>
+    <title>Aurexai API Reference</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/api-docs/openapi.json"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
   </body>
 </html>"#,
     )
@@ -162,6 +181,8 @@ pub fn create_router(state: AppState) -> Router {
         .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/redoc", get(redoc))
         .route("/redoc/", get(redoc))
+        .route("/scalar", get(scalar))
+        .route("/scalar/", get(scalar))
         .nest("/api/v1", api_v1);
 
     let admin_dist = std::path::Path::new("admin/dist");
