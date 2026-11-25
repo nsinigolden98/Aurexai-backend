@@ -43,5 +43,5 @@ base64 = "0.22"
 axum-extra = { version = "0.10", features = ["cookie"] }
 time = "0.3"
 url = "2"
-validator = { version = "0.19", features = ["derive"] }
+validator = { version = "0.21", features = ["derive"] }
 async-trait = "0.1"
