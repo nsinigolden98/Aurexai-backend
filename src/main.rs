@@ -23,7 +23,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })?;
 
     let db = db::connect(&config.database_url).await?;
-    migration::Migrator::up(&db, None).await?;
+
+    let mut last_err = None;
+    for attempt in 1..=5 {
+        match migration::Migrator::up(&db, None).await {
+            Ok(_) => {
+                last_err = None;
+                break;
+            }
+            Err(e) => {
+                tracing::warn!(attempt, error = %e, "migration failed, retrying");
+                last_err = Some(e);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+    if let Some(e) = last_err {
+        return Err(e.into());
+    }
 
     let email_service = services::email::EmailService::new(&config);
     let notification_manager = services::notification::NotificationManager::new();
