@@ -13,7 +13,7 @@ use tower_http::{
     trace::TraceLayer,
 };
 use utoipa::OpenApi;
-use utoipa_redoc::{Redoc, Servable};
+// Redoc served via custom HTML endpoint.
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
@@ -103,6 +103,24 @@ pub async fn health() -> Json<HealthResponse> {
     })
 }
 
+pub async fn redoc() -> axum::response::Html<&'static str> {
+    axum::response::Html(
+        r#"<!DOCTYPE html>
+<html>
+  <head>
+    <title>Aurexai API Docs</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>body { margin: 0; padding: 0; }</style>
+  </head>
+  <body>
+    <redoc spec-url="/api-docs/openapi.json"></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </body>
+</html>"#,
+    )
+}
+
 pub fn create_router(state: AppState) -> Router {
     let allowed_origins: Vec<HeaderValue> = state
         .config
@@ -142,7 +160,8 @@ pub fn create_router(state: AppState) -> Router {
 
     let mut router = Router::new()
         .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
+        .route("/redoc", get(redoc))
+        .route("/redoc/", get(redoc))
         .nest("/api/v1", api_v1);
 
     let admin_dist = std::path::Path::new("admin/dist");
