@@ -17,15 +17,20 @@ RUN mkdir -p src migration/src \
     && printf 'pub fn dummy() {}\n' > migration/src/lib.rs \
     && printf 'fn main() {}\n' > migration/src/main.rs \
     && cargo build --release --locked \
-    && rm -rf src migration/src target/release/deps/aurexai_backend-* target/release/deps/aurexai-backend-* target/release/aurexai-backend*
+    && rm -rf src migration/src \
+    && find target/release -maxdepth 2 \( -name '*aurexai_backend*' -o -name '*aurexai-backend*' -o -name '*migration*' \) -exec rm -rf {} + \
+    && find target/release -maxdepth 3 -path '*fingerprint/*aurexai*' -exec rm -rf {} + \
+    && find target/release -maxdepth 3 -path '*fingerprint/*migration*' -exec rm -rf {} +
 
 # Real build
 COPY src ./src
 COPY migration ./migration
 COPY templates ./templates
 
-RUN cargo build --release --locked \
-    && test -x target/release/aurexai-backend
+RUN touch src/lib.rs src/main.rs migration/src/lib.rs migration/src/main.rs \
+    && cargo build --release --locked \
+    && test -x target/release/aurexai-backend \
+    && test "$(stat -c%s target/release/aurexai-backend)" -gt 1000000
 
 ARG GIT_SHA=unknown
 RUN { echo "commit ${GIT_SHA}"; date -u +"built %Y-%m-%dT%H:%M:%SZ"; } > /app/BUILD_INFO
