@@ -3,7 +3,7 @@
 FROM rust:1-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    pkg-config libssl-dev ca-certificates \
+    pkg-config libssl-dev ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -12,6 +12,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY migration/Cargo.toml ./migration/Cargo.toml
 RUN mkdir -p src migration/src \
+    && printf 'pub fn dummy() {}\n' > src/lib.rs \
     && printf 'fn main() {}\n' > src/main.rs \
     && printf 'pub fn dummy() {}\n' > migration/src/lib.rs \
     && printf 'fn main() {}\n' > migration/src/main.rs \
