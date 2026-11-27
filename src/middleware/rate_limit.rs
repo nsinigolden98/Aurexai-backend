@@ -12,7 +12,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use crate::error::ErrorResponse;
+use crate::{error::ErrorResponse, middleware::full_path};
 
 #[derive(Clone)]
 pub struct RateLimiter {
@@ -68,7 +68,7 @@ pub async fn limit_sensitive_auth(req: Request, next: Next) -> Response {
     static LIMITER: std::sync::OnceLock<RateLimiter> = std::sync::OnceLock::new();
     let limiter = LIMITER.get_or_init(|| RateLimiter::new(10, Duration::from_secs(60)));
 
-    let path = req.uri().path().to_string();
+    let path = full_path(&req);
     let sensitive = matches!(
         path.as_str(),
         "/api/v1/auth/signup/"

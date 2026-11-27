@@ -9,12 +9,12 @@ use axum_extra::extract::CookieJar;
 
 use crate::{
     app::AppState,
+    error::{AppError, ErrorResponse},
     serializer::auth::{
         AuthResponse, AuthUserResponse, ConfirmOtpRequest, ForgotPasswordRequest,
         GoogleAuthRequest, LoginRequest, MessageResponse, ResendOtpRequest, ResetPasswordRequest,
         SignupRequest,
     },
-    error::{AppError, ErrorResponse},
     services::auth::AuthService,
     utils::validation::validate_payload,
 };

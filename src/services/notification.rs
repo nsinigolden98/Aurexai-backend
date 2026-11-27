@@ -8,7 +8,9 @@ use sea_orm::{
 use tokio::sync::{Mutex, broadcast};
 use uuid::Uuid;
 
-use crate::{serializer::notification::NotificationResponse, error::AppError, models::notification};
+use crate::{
+    error::AppError, models::notification, serializer::notification::NotificationResponse,
+};
 
 #[derive(Clone, Default)]
 pub struct NotificationManager {

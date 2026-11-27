@@ -8,10 +8,10 @@ use uuid::Uuid;
 
 use crate::{
     app::AppState,
-    serializer::admin::{AdminUserResponse, AdminUsersListResponse, UpdateUserRoleRequest},
     error::{AppError, ErrorResponse},
     middleware::auth::AdminUser,
     models::user,
+    serializer::admin::{AdminUserResponse, AdminUsersListResponse, UpdateUserRoleRequest},
     services::notification::NotificationService,
 };
 

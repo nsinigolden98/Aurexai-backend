@@ -12,11 +12,11 @@ use uuid::Uuid;
 
 use crate::{
     app::AppState,
+    error::{AppError, ErrorResponse},
+    middleware::auth::CurrentUser,
     serializer::notification::{
         MarkReadRequest, NotificationListResponse, NotificationQuery, NotificationResponse,
     },
-    error::{AppError, ErrorResponse},
-    middleware::auth::CurrentUser,
     services::notification::NotificationService,
 };
 

@@ -62,3 +62,29 @@ async fn csrf_blocks_unsafe_authenticated_requests_without_header() {
     let refresh_res = app.clone().oneshot(refresh_req).await.unwrap();
     assert_eq!(refresh_res.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+#[serial]
+async fn login_is_not_blocked_by_csrf() {
+    let Some((app, _db)) = setup().await else {
+        return;
+    };
+
+    // Login is a public auth endpoint: no csrf cookie or header should still
+    // reach the handler and return 401 for invalid credentials, never 403.
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/auth/login/")
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(
+            json!({"email":"no-one@example.com","password":"password123"}).to_string(),
+        ))
+        .unwrap();
+
+    let res = app.oneshot(req).await.unwrap();
+    assert_eq!(
+        res.status(),
+        StatusCode::UNAUTHORIZED,
+        "login must not require a CSRF token"
+    );
+}

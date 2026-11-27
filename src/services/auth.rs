@@ -5,13 +5,13 @@ use uuid::Uuid;
 
 use crate::{
     config::Config,
+    error::AppError,
+    models::{password_reset_token, refresh_token, user},
     serializer::auth::{
         AuthResponse, AuthUserResponse, ConfirmOtpRequest, ForgotPasswordRequest,
         GoogleAuthRequest, LoginRequest, MessageResponse, ResendOtpRequest, ResetPasswordRequest,
         SignupRequest,
     },
-    error::AppError,
-    models::{password_reset_token, refresh_token, user},
     services::{
         email::EmailService,
         notification::{NotificationManager, NotificationService},
